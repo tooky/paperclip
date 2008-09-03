@@ -74,10 +74,17 @@ module Paperclip
       return nil if uploaded_file.nil?
 
       logger.info("[paperclip] Writing attributes for #{name}")
-      @queued_for_write[:original]        = uploaded_file.to_tempfile
-      @instance[:"#{@name}_file_name"]    = uploaded_file.original_filename.strip.gsub /[^\w\d\.\-]+/, '_'
-      @instance[:"#{@name}_content_type"] = uploaded_file.content_type.strip
-      @instance[:"#{@name}_file_size"]    = uploaded_file.size.to_i
+      if uploaded_file.is_a?(Mash)
+        @queued_for_write[:original]        = uploaded_file[:tempfile]
+        @instance[:"#{@name}_file_name"]    = uploaded_file[:filename].strip.gsub /[^\w\d\.\-]+/, '_'
+        @instance[:"#{@name}_content_type"] = uploaded_file[:content_type].strip
+        @instance[:"#{@name}_file_size"]    = uploaded_file[:size].to_i
+      else
+        @queued_for_write[:original]        = uploaded_file.to_tempfile
+        @instance[:"#{@name}_file_name"]    = uploaded_file.original_filename.strip.gsub /[^\w\d\.\-]+/, '_'
+        @instance[:"#{@name}_content_type"] = uploaded_file.content_type.strip
+        @instance[:"#{@name}_file_size"]    = uploaded_file.size.to_i
+      end
       @instance[:"#{@name}_updated_at"]   = Time.now
 
       @dirty = true
