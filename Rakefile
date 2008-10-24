@@ -86,3 +86,10 @@ task :release => [:test, :sync_docs, :gem] do
                 spec.version,
                 File.join("pkg", "#{spec.name}-#{spec.version}.gem")
 end
+
+desc "Create a gemspec file"
+task :gemspec do
+  File.open("#{spec.name}.gemspec", "w") do |file|
+    file.puts spec.to_ruby
+  end
+end
