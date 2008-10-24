@@ -74,16 +74,16 @@ module Paperclip
       return nil if uploaded_file.nil?
 
       logger.info("[paperclip] Writing attributes for #{name}")
-      if uploaded_file.is_a?(Mash)
-        @queued_for_write[:original]        = uploaded_file[:tempfile]
-        @instance[:"#{@name}_file_name"]    = uploaded_file[:filename].strip.gsub /[^\w\d\.\-]+/, '_'
-        @instance[:"#{@name}_content_type"] = uploaded_file[:content_type].strip
-        @instance[:"#{@name}_file_size"]    = uploaded_file[:size].to_i
-      else
+      if (uploaded_file.respond_to?(:original_filename) && uploaded_file.respond_to?(:content_type))
         @queued_for_write[:original]        = uploaded_file.to_tempfile
         @instance[:"#{@name}_file_name"]    = uploaded_file.original_filename.strip.gsub /[^\w\d\.\-]+/, '_'
         @instance[:"#{@name}_content_type"] = uploaded_file.content_type.strip
         @instance[:"#{@name}_file_size"]    = uploaded_file.size.to_i
+      else
+        @queued_for_write[:original]        = uploaded_file[:tempfile]
+        @instance[:"#{@name}_file_name"]    = uploaded_file[:filename].strip.gsub /[^\w\d\.\-]+/, '_'
+        @instance[:"#{@name}_content_type"] = uploaded_file[:content_type].strip
+        @instance[:"#{@name}_file_size"]    = uploaded_file[:size].to_i
       end
       @instance[:"#{@name}_updated_at"]   = Time.now
 
@@ -110,6 +110,11 @@ module Paperclip
     # and the :bucket option refers to the S3 bucket.
     def path style = nil #:nodoc:
       interpolate(@path, style)
+    end
+    
+    def geometry style = default_style
+      @geometries ||= {}
+      @geometries[style] ||= Geometry.from_file path(style)
     end
 
     # Alias to +url+
@@ -167,7 +172,7 @@ module Paperclip
     # necessary.
     def self.interpolations
       @interpolations ||= {
-        :rails_root   => lambda{|attachment,style| RAILS_ROOT },
+        :rails_root   => lambda{|attachment,style| Merb.root },
         :class        => lambda do |attachment,style|
                            attachment.instance.class.name.underscore.pluralize
                          end,
@@ -219,7 +224,7 @@ module Paperclip
     end
 
     def valid_assignment? file #:nodoc:
-      file.nil? || (file.respond_to?(:original_filename) && file.respond_to?(:content_type))
+      file.nil? || (file.respond_to?(:original_filename) && file.respond_to?(:content_type)) || (file.key?(:filename) && file.key?(:content_type))
     end
 
     def validate #:nodoc:
